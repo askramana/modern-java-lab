@@ -1,0 +1,85 @@
+package com.ajays.modernjava.payments.domain;
+
+import static com.ajays.modernjava.payments.Fixtures.CLOCK;
+import static com.ajays.modernjava.payments.Fixtures.newPayment;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.ajays.modernjava.payments.domain.PaymentCommand.Authorize;
+import com.ajays.modernjava.payments.domain.PaymentCommand.Capture;
+import com.ajays.modernjava.payments.domain.PaymentCommand.Decline;
+import com.ajays.modernjava.payments.domain.PaymentCommand.Refund;
+import com.ajays.modernjava.payments.domain.PaymentStatus.Authorized;
+import com.ajays.modernjava.payments.domain.PaymentStatus.Captured;
+import com.ajays.modernjava.payments.domain.PaymentStatus.Declined;
+import com.ajays.modernjava.payments.domain.PaymentStatus.Initiated;
+import com.ajays.modernjava.payments.domain.PaymentStatus.Refunded;
+import org.junit.jupiter.api.Test;
+
+class PaymentLifecycleTest {
+
+    private final Payment captured = newPayment()
+            .apply(new Authorize("AUTH1"), CLOCK)
+            .apply(new Capture(), CLOCK);
+
+    @Test
+    void happyPath() {
+        var authorized = newPayment().apply(new Authorize("AUTH1"), CLOCK);
+        assertThat(authorized.status()).isEqualTo(new Authorized("AUTH1", CLOCK.instant()));
+        assertThat(captured.status()).isInstanceOf(Captured.class);
+        assertThat(captured.refundableBalance()).isEqualTo(Money.of("1000", "INR"));
+    }
+
+    @Test
+    void transitionsReturnNewInstancesAndKeepIdentity() {
+        var original = newPayment();
+        var next = original.apply(new Decline(DeclineReason.SUSPECTED_FRAUD), CLOCK);
+        assertThat(original.status()).isInstanceOf(Initiated.class);   // unchanged
+        assertThat(next.id()).isEqualTo(original.id());
+        assertThat(next.status()).isEqualTo(new Declined(DeclineReason.SUSPECTED_FRAUD, CLOCK.instant()));
+    }
+
+    @Test
+    void partialRefundsAccumulate() {
+        var once = captured.apply(new Refund(Money.of("300", "INR")), CLOCK);
+        var twice = once.apply(new Refund(Money.of("200", "INR")), CLOCK);
+        assertThat(twice.status()).isEqualTo(new Refunded(Money.of("500", "INR"), CLOCK.instant()));
+        assertThat(twice.refundableBalance()).isEqualTo(Money.of("500", "INR"));
+    }
+
+    @Test
+    void guardRejectsOverRefund() {
+        var partly = captured.apply(new Refund(Money.of("900", "INR")), CLOCK);
+        assertThatThrownBy(() -> partly.apply(new Refund(Money.of("200", "INR")), CLOCK))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("exceeds refundable balance INR 100.00");
+    }
+
+    @Test
+    void illegalTransitionCarriesContext() {
+        var declined = newPayment().apply(new Decline(DeclineReason.LIMIT_EXCEEDED), CLOCK);
+        assertThatThrownBy(() -> declined.apply(new Capture(), CLOCK))
+                .isInstanceOfSatisfying(IllegalTransitionException.class, e -> {
+                    assertThat(e.from()).isInstanceOf(Declined.class);
+                    assertThat(e.command()).isEqualTo(new Capture());
+                    assertThat(e).hasMessage("Payment pay_test: cannot capture a payment that is DECLINED");
+                });
+    }
+
+    @Test
+    void cannotCaptureBeforeAuthorization() {
+        assertThatThrownBy(() -> newPayment().apply(new Capture(), CLOCK))
+                .isInstanceOf(IllegalTransitionException.class);
+    }
+
+    @Test
+    void lombokWitherRunsCanonicalConstructorValidation() {
+        assertThatThrownBy(() -> newPayment().withStatus(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void retryableDeclineReasons() {
+        assertThat(DeclineReason.ISSUER_UNAVAILABLE.isRetryable()).isTrue();
+        assertThat(DeclineReason.SUSPECTED_FRAUD.isRetryable()).isFalse();
+    }
+}
