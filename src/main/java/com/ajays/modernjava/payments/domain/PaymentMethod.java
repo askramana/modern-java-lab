@@ -2,6 +2,7 @@ package com.ajays.modernjava.payments.domain;
 
 import java.time.YearMonth;
 import java.util.regex.Pattern;
+import lombok.NonNull;
 
 /// How the customer pays.
 ///
@@ -44,6 +45,12 @@ import java.util.regex.Pattern;
 /// - In the unnamed module (no `module-info.java`, like this project), permitted subtypes
 ///   must be in the **same package**. In a named module, the same module.
 /// - Records nested in an interface are implicitly `public static`.
+///
+/// ### Null vs invalid
+///
+/// `@NonNull` turns a `null` component into a `NullPointerException` (a caller bug), while the
+/// compact constructors turn a badly formatted value into an `IllegalArgumentException`
+/// (bad data). Two different failures, two different exceptions.
 public sealed interface PaymentMethod {
 
     /// A card. Only non-sensitive data is held; the PAN never enters this system.
@@ -52,20 +59,17 @@ public sealed interface PaymentMethod {
     /// @param last4          last four digits of the card number
     /// @param expiry         month the card expires (valid through the end of that month)
     /// @param issuingCountry ISO-3166 alpha-2 country of the issuing bank
-    record Card(CardNetwork network, String last4, YearMonth expiry, String issuingCountry)
+    record Card(@NonNull CardNetwork network, @NonNull String last4, @NonNull YearMonth expiry, @NonNull String issuingCountry)
             implements PaymentMethod {
 
         private static final Pattern LAST4 = Pattern.compile("\\d{4}");
         private static final Pattern COUNTRY = Pattern.compile("[A-Z]{2}");
 
         public Card {
-            if (network == null || expiry == null) {
-                throw new IllegalArgumentException("network and expiry are required");
-            }
-            if (last4 == null || !LAST4.matcher(last4).matches()) {
+            if (!LAST4.matcher(last4).matches()) {
                 throw new IllegalArgumentException("last4 must be 4 digits: " + last4);
             }
-            if (issuingCountry == null || !COUNTRY.matcher(issuingCountry).matches()) {
+            if (!COUNTRY.matcher(issuingCountry).matches()) {
                 throw new IllegalArgumentException("issuingCountry must be ISO alpha-2: " + issuingCountry);
             }
         }
@@ -78,12 +82,12 @@ public sealed interface PaymentMethod {
     /// UPI (India's real-time payments rail), addressed by a virtual payment address.
     ///
     /// @param vpa virtual payment address such as `ajay@okbank`
-    record Upi(String vpa) implements PaymentMethod {
+    record Upi(@NonNull String vpa) implements PaymentMethod {
 
         private static final Pattern VPA = Pattern.compile("[\\w.\\-]{2,256}@[a-zA-Z]{2,64}");
 
         public Upi {
-            if (vpa == null || !VPA.matcher(vpa).matches()) {
+            if (!VPA.matcher(vpa).matches()) {
                 throw new IllegalArgumentException("Invalid UPI VPA: " + vpa);
             }
         }
@@ -97,15 +101,15 @@ public sealed interface PaymentMethod {
     ///
     /// @param ifsc         11-character IFSC code of the destination branch
     /// @param accountLast4 last four digits of the account number
-    record BankTransfer(String ifsc, String accountLast4) implements PaymentMethod {
+    record BankTransfer(@NonNull String ifsc, @NonNull String accountLast4) implements PaymentMethod {
 
         private static final Pattern IFSC = Pattern.compile("[A-Z]{4}0[A-Z0-9]{6}");
 
         public BankTransfer {
-            if (ifsc == null || !IFSC.matcher(ifsc).matches()) {
+            if (!IFSC.matcher(ifsc).matches()) {
                 throw new IllegalArgumentException("Invalid IFSC: " + ifsc);
             }
-            if (accountLast4 == null || !accountLast4.matches("\\d{4}")) {
+            if (!accountLast4.matches("\\d{4}")) {
                 throw new IllegalArgumentException("accountLast4 must be 4 digits");
             }
         }

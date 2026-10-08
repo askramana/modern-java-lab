@@ -55,6 +55,10 @@ com.ajays.modernjava.payments
 - **Records first.** Data is modelled as records. Lombok is used only for what Java still
   lacks: `@With` (no withers yet), `@Builder` (records have no named or optional
   parameters), and `@Slf4j`/`@RequiredArgsConstructor` on service classes.
+- **Nulls are rejected at construction with Lombok `@NonNull`** on record components, not with
+  `Objects.requireNonNull` boilerplate. A null is a caller bug (`NullPointerException`); a bad value
+  is bad data (`IllegalArgumentException`). Settings live in `lombok.config`. The one deliberate
+  exception is `IllegalTransitionException`, whose explicit checks demonstrate a constructor prologue.
 - **Two tiers of validation.** Jakarta annotations on boundary DTOs collect every input
   error. Compact constructors make invalid domain objects impossible to construct.
 - **No `default` in switches over types we own.** Exhaustiveness is what makes sealing

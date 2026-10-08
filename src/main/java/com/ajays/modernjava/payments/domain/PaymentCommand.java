@@ -1,6 +1,6 @@
 package com.ajays.modernjava.payments.domain;
 
-import java.util.Objects;
+import lombok.NonNull;
 
 /// Something that can be asked of a [Payment]. Applied by [Payment#apply(PaymentCommand, java.time.Clock)].
 ///
@@ -15,20 +15,14 @@ public sealed interface PaymentCommand {
     /// Mark the payment authorized by the issuer.
     ///
     /// @param authCode issuer authorization code
-    record Authorize(String authCode) implements PaymentCommand {
-        public Authorize { Objects.requireNonNull(authCode, "authCode"); }
-    }
+    record Authorize(@NonNull String authCode) implements PaymentCommand {}
 
     /// Move the authorized funds.
     record Capture() implements PaymentCommand {}
 
     /// Reject the payment.
-    record Decline(DeclineReason reason) implements PaymentCommand {
-        public Decline { Objects.requireNonNull(reason, "reason"); }
-    }
+    record Decline(@NonNull DeclineReason reason) implements PaymentCommand {}
 
     /// Return some or all of a captured amount. May be applied more than once.
-    record Refund(Money amount) implements PaymentCommand {
-        public Refund { Objects.requireNonNull(amount, "amount"); }
-    }
+    record Refund(@NonNull Money amount) implements PaymentCommand {}
 }

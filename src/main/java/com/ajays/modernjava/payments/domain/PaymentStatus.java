@@ -1,7 +1,7 @@
 package com.ajays.modernjava.payments.domain;
 
 import java.time.Instant;
-import java.util.Objects;
+import lombok.NonNull;
 
 /// Lifecycle state of a [Payment].
 ///
@@ -30,42 +30,27 @@ public sealed interface PaymentStatus {
     Instant at();
 
     /// Created, not yet sent to the issuer.
-    record Initiated(Instant at) implements PaymentStatus {
-        public Initiated { Objects.requireNonNull(at, "at"); }
-    }
+    record Initiated(@NonNull Instant at) implements PaymentStatus {}
 
     /// Issuer reserved the funds.
     ///
     /// @param authCode issuer authorization code
-    record Authorized(String authCode, Instant at) implements PaymentStatus {
+    record Authorized(@NonNull String authCode, @NonNull Instant at) implements PaymentStatus {
         public Authorized {
-            Objects.requireNonNull(at, "at");
-            if (authCode == null || authCode.isBlank()) {
+            if (authCode.isBlank()) {
                 throw new IllegalArgumentException("authCode required");
             }
         }
     }
 
     /// Funds moved. Terminal unless refunded.
-    record Captured(Instant at) implements PaymentStatus {
-        public Captured { Objects.requireNonNull(at, "at"); }
-    }
+    record Captured(@NonNull Instant at) implements PaymentStatus {}
 
     /// Rejected by risk or by the issuer. Terminal.
-    record Declined(DeclineReason reason, Instant at) implements PaymentStatus {
-        public Declined {
-            Objects.requireNonNull(reason, "reason");
-            Objects.requireNonNull(at, "at");
-        }
-    }
+    record Declined(@NonNull DeclineReason reason, @NonNull Instant at) implements PaymentStatus {}
 
     /// Partly or fully refunded.
     ///
     /// @param totalRefunded cumulative amount refunded so far
-    record Refunded(Money totalRefunded, Instant at) implements PaymentStatus {
-        public Refunded {
-            Objects.requireNonNull(totalRefunded, "totalRefunded");
-            Objects.requireNonNull(at, "at");
-        }
-    }
+    record Refunded(@NonNull Money totalRefunded, @NonNull Instant at) implements PaymentStatus {}
 }

@@ -3,7 +3,7 @@ package com.ajays.modernjava.payments.domain;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Currency;
-import java.util.Objects;
+import lombok.NonNull;
 
 /// An amount of money in a single currency.
 ///
@@ -45,11 +45,10 @@ import java.util.Objects;
 ///
 /// @param amount   non-negative, scaled to the currency's default fraction digits
 /// @param currency ISO-4217 currency
-public record Money(BigDecimal amount, Currency currency) implements Comparable<Money> {
+public record Money(@NonNull BigDecimal amount, @NonNull Currency currency) implements Comparable<Money> {
 
     public Money {
-        Objects.requireNonNull(amount, "amount");
-        Objects.requireNonNull(currency, "currency");
+        // null checks are injected here by Lombok's @NonNull; only real invariants remain
         if (amount.signum() < 0) {
             throw new IllegalArgumentException("Money cannot be negative: " + amount);
         }

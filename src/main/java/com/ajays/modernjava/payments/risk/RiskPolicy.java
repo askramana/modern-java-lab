@@ -1,8 +1,8 @@
 package com.ajays.modernjava.payments.risk;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 import java.util.Set;
+import lombok.NonNull;
 
 /// Tunable thresholds for [RiskEngine].
 ///
@@ -18,15 +18,13 @@ import java.util.Set;
 /// @param newAccountTransferLimit    bank transfers above this from new accounts are rejected
 /// @param trustedWalletProviders     partner wallets that skip review
 public record RiskPolicy(
-        BigDecimal crossBorderReviewAbove,
+        @NonNull BigDecimal crossBorderReviewAbove,
         int upiVelocityLimit,
         int newAccountDays,
-        BigDecimal newAccountTransferLimit,
-        Set<String> trustedWalletProviders) {
+        @NonNull BigDecimal newAccountTransferLimit,
+        @NonNull Set<String> trustedWalletProviders) {
 
     public RiskPolicy {
-        Objects.requireNonNull(crossBorderReviewAbove, "crossBorderReviewAbove");
-        Objects.requireNonNull(newAccountTransferLimit, "newAccountTransferLimit");
         trustedWalletProviders = Set.copyOf(trustedWalletProviders);   // defensive, immutable copy
         if (upiVelocityLimit <= 0 || newAccountDays < 0) {
             throw new IllegalArgumentException("invalid limits");

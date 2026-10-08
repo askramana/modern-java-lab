@@ -1,6 +1,7 @@
 package com.ajays.modernjava.payments.wallets;
 
 import com.ajays.modernjava.payments.domain.PaymentMethod.ExternalWallet;
+import lombok.NonNull;
 
 /// A wallet contributed from outside the `domain` package.
 ///
@@ -10,10 +11,10 @@ import com.ajays.modernjava.payments.domain.PaymentMethod.ExternalWallet;
 ///
 /// @param provider partner name
 /// @param walletId partner's wallet identifier
-public record PartnerWallet(String provider, String walletId) implements ExternalWallet {
+public record PartnerWallet(@NonNull String provider, @NonNull String walletId) implements ExternalWallet {
 
     public PartnerWallet {
-        if (provider == null || provider.isBlank() || walletId == null || walletId.isBlank()) {
+        if (provider.isBlank() || walletId.isBlank()) {
             throw new IllegalArgumentException("provider and walletId are required");
         }
     }

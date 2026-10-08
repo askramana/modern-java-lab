@@ -1,6 +1,7 @@
 package com.ajays.modernjava.payments.domain;
 
 import java.util.UUID;
+import lombok.NonNull;
 
 /// Strongly typed identifier for a [Payment].
 ///
@@ -15,10 +16,10 @@ import java.util.UUID;
 /// this be flattened to just its `String` field. That is one reason to adopt the pattern now.
 ///
 /// @param value non-blank opaque identifier
-public record PaymentId(String value) {
+public record PaymentId(@NonNull String value) {
 
     public PaymentId {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("PaymentId must not be blank");
         }
     }

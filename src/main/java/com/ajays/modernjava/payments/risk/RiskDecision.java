@@ -2,7 +2,7 @@ package com.ajays.modernjava.payments.risk;
 
 import com.ajays.modernjava.payments.domain.DeclineReason;
 import java.util.List;
-import java.util.Objects;
+import lombok.NonNull;
 
 /// Outcome of a risk evaluation.
 ///
@@ -31,7 +31,7 @@ public sealed interface RiskDecision {
     /// `null` elements.
     ///
     /// @param reasons non-empty, human-readable reasons
-    record Review(List<String> reasons) implements RiskDecision {
+    record Review(@NonNull List<String> reasons) implements RiskDecision {
         public Review {
             reasons = List.copyOf(reasons);
             if (reasons.isEmpty()) {
@@ -45,10 +45,5 @@ public sealed interface RiskDecision {
     }
 
     /// Decline before reaching the issuer.
-    record Reject(DeclineReason reason, String detail) implements RiskDecision {
-        public Reject {
-            Objects.requireNonNull(reason, "reason");
-            Objects.requireNonNull(detail, "detail");
-        }
-    }
+    record Reject(@NonNull DeclineReason reason, @NonNull String detail) implements RiskDecision {}
 }

@@ -1,7 +1,7 @@
 package com.ajays.modernjava.payments.ingest;
 
 import java.util.List;
-import java.util.Objects;
+import lombok.NonNull;
 
 /// Result of validating a value: either [Valid] with the value, or [Invalid] with every
 /// problem found.
@@ -26,9 +26,7 @@ import java.util.Objects;
 public sealed interface Validated<T> {
 
     /// The value passed every check.
-    record Valid<T>(T value) implements Validated<T> {
-        public Valid { Objects.requireNonNull(value, "value"); }
-    }
+    record Valid<T>(@NonNull T value) implements Validated<T> {}
 
     /// One or more checks failed.
     ///

@@ -6,10 +6,10 @@ import com.ajays.modernjava.payments.domain.PaymentCommand.Decline;
 import com.ajays.modernjava.payments.domain.PaymentCommand.Refund;
 import com.ajays.modernjava.payments.domain.PaymentStatus.*;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.With;
 
 import java.time.Clock;
-import java.util.Objects;
 
 /// A payment and its current lifecycle state. Immutable: every transition returns a new
 /// `Payment`.
@@ -54,6 +54,10 @@ import java.util.Objects;
 /// - `@Builder` makes test fixtures with five components readable. Production code uses
 ///   [#initiate(CustomerId, Money, PaymentMethod, Clock)], which encodes the domain rule that
 ///   new payments always start as `Initiated`.
+/// - `@NonNull` on the components makes Lombok insert null checks at the top of the canonical
+///   constructor (generating a compact constructor if there isn't one). The header now says
+///   which components are required, which is where a reader of a record looks. It throws
+///   `NullPointerException("id is marked non-null but is null")`; see `lombok.config`.
 ///
 /// @param id         identity
 /// @param customerId who pays
@@ -62,15 +66,12 @@ import java.util.Objects;
 /// @param status     current lifecycle state
 @With
 @Builder(toBuilder = true)
-public record Payment(PaymentId id, CustomerId customerId, Money amount, PaymentMethod method, PaymentStatus status) {
-
-    public Payment {
-        Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(customerId, "customerId");
-        Objects.requireNonNull(amount, "amount");
-        Objects.requireNonNull(method, "method");
-        Objects.requireNonNull(status, "status");
-    }
+public record Payment(
+        @NonNull PaymentId id,
+        @NonNull CustomerId customerId,
+        @NonNull Money amount,
+        @NonNull PaymentMethod method,
+        @NonNull PaymentStatus status) {
 
     public static Payment initiate(CustomerId customerId, Money amount, PaymentMethod method, Clock clock) {
         return new Payment(PaymentId.newId(), customerId, amount, method, new Initiated(clock.instant()));
@@ -80,8 +81,7 @@ public record Payment(PaymentId id, CustomerId customerId, Money amount, Payment
     ///
     /// @throws IllegalTransitionException if the command is not valid in the current state
     /// @throws IllegalArgumentException   if a refund would exceed the captured amount
-    public Payment apply(PaymentCommand command, Clock clock) {
-        Objects.requireNonNull(command, "command");
+    public Payment apply(@NonNull PaymentCommand command, @NonNull Clock clock) {
         var now = clock.instant();
 
         PaymentStatus next = switch (status) {

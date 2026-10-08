@@ -13,7 +13,7 @@ import com.ajays.modernjava.payments.risk.RiskDecision.Reject;
 import com.ajays.modernjava.payments.risk.RiskDecision.Review;
 import java.time.Clock;
 import java.time.YearMonth;
-import java.util.Objects;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,9 +67,7 @@ public final class RiskEngine {
     private final RiskPolicy policy;
     private final Clock clock;
 
-    public RiskDecision evaluate(Payment payment, CustomerProfile profile) {
-        Objects.requireNonNull(payment, "payment");
-        Objects.requireNonNull(profile, "profile");
+    public RiskDecision evaluate(@NonNull Payment payment, @NonNull CustomerProfile profile) {
         var amount = payment.amount().amount();
 
         RiskDecision decision = switch (payment.method()) {
