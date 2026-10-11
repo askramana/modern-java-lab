@@ -10,6 +10,9 @@ import com.ajays.modernjava.payments.ingest.PaymentRequest;
 import com.ajays.modernjava.payments.ingest.PaymentRequestValidator;
 import com.ajays.modernjava.payments.ingest.Validated.Invalid;
 import com.ajays.modernjava.payments.ingest.Validated.Valid;
+import com.ajays.modernjava.payments.issuer.AuthorizationResult.Approved;
+import com.ajays.modernjava.payments.issuer.AuthorizationResult.Declined;
+import com.ajays.modernjava.payments.issuer.IssuerClient;
 import com.ajays.modernjava.payments.risk.CustomerProfile;
 import com.ajays.modernjava.payments.risk.RiskDecision;
 import com.ajays.modernjava.payments.risk.RiskDecision.Approve;
@@ -19,7 +22,6 @@ import com.ajays.modernjava.payments.risk.RiskEngine;
 import java.time.Clock;
 import java.util.Currency;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 
 /// Entry point: validate, create, risk-check and authorize a payment.
@@ -28,14 +30,27 @@ import lombok.RequiredArgsConstructor;
 /// next step pattern-matches on it, so control flow follows the data and the compiler checks
 /// every branch.
 ///
-/// The issuer call is simulated. In the Loom lesson it becomes a real blocking call on a
-/// virtual thread, with the risk check and issuer call run concurrently under structured
-/// concurrency.
+/// ## Loom: the issuer call blocks, and that's fine
+///
+/// [IssuerClient#authorize(Payment)] blocks for a network round trip. There is no
+/// `CompletableFuture` here: run `submit` on a virtual thread (one per request, as a modern
+/// server does) and the wait costs a few hundred bytes of heap instead of an OS thread. See
+/// [IssuerClient] for the full argument.
+///
+/// `submit` must be called inside a [com.ajays.modernjava.payments.context.RequestContext]:
+/// the issuer reads the correlation id from it as an idempotency key. The context is a scoped
+/// value, so it reaches the issuer without being threaded through `RiskEngine` and every
+/// method in between.
+///
+/// Risk and authorization stay **sequential** on purpose: authorizing first would put a hold
+/// on the customer's money for a payment that risk might reject. What *can* run in parallel
+/// is gathering the risk signals; see `ParallelRiskSignals` in `src/preview`.
 @RequiredArgsConstructor
 public final class PaymentGateway {
 
     private final PaymentRequestValidator validator;
     private final RiskEngine riskEngine;
+    private final IssuerClient issuer;
     private final Clock clock;
 
     /// Result of [#submit(PaymentRequest, CustomerProfile)].
@@ -64,14 +79,17 @@ public final class PaymentGateway {
         RiskDecision decision = riskEngine.evaluate(payment, profile);
 
         Payment next = switch (decision) {
-            case Approve _ -> payment.apply(new Authorize(simulateIssuerAuthCode()), clock);
+            case Approve _ -> authorize(payment);
             case Review _ -> payment;   // stays Initiated, waiting for an analyst
             case Reject(DeclineReason reason, _) -> payment.apply(new Decline(reason), clock);
         };
         return new Outcome.Processed(next, decision);
     }
 
-    private static String simulateIssuerAuthCode() {
-        return "AUTH" + ThreadLocalRandom.current().nextInt(100_000, 1_000_000);
+    private Payment authorize(Payment payment) {
+        return switch (issuer.authorize(payment)) {   // blocks; on a virtual thread that's cheap
+            case Approved(var authCode) -> payment.apply(new Authorize(authCode), clock);
+            case Declined(var reason) -> payment.apply(new Decline(reason), clock);
+        };
     }
 }

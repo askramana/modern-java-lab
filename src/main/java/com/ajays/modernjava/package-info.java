@@ -9,9 +9,9 @@
 ///
 /// | OpenJDK project | Theme                                   | Status in this lab |
 /// |-----------------|-----------------------------------------|--------------------|
-/// | **Amber**       | Language productivity, data-oriented programming | This module |
-/// | Loom            | Virtual threads, structured concurrency, scoped values | Next |
-/// | Core libraries  | HttpClient, sequenced collections, gatherers | Later |
+/// | **Amber**       | Language productivity, data-oriented programming | Done |
+/// | **Loom**        | Virtual threads, structured concurrency, scoped values | Done |
+/// | Core libraries  | HttpClient, sequenced collections, gatherers | Next |
 /// | Panama          | Foreign Function & Memory API           | Later |
 /// | Leyden / Lilliput | Startup, footprint, AOT cache         | Later |
 /// | Valhalla        | Value objects (preview in JDK 28)       | Later |
@@ -28,6 +28,17 @@
 /// 7. [com.ajays.modernjava.payments.domain.IllegalTransitionException]: flexible constructor bodies
 /// 8. [com.ajays.modernjava.payments.report.SettlementReport]: module imports, local records
 /// 9. `scripts/AmberTour.java`: compact source files and instance `main`
+///
+/// ## Reading order for Project Loom
+///
+/// 1. [com.ajays.modernjava.payments.issuer.IssuerClient]: why blocking code is fine again on virtual threads
+/// 2. [com.ajays.modernjava.payments.context.RequestContext]: scoped values instead of `ThreadLocal`
+/// 3. [com.ajays.modernjava.payments.PaymentGateway]: a blocking issuer call inside a request scope
+/// 4. [com.ajays.modernjava.payments.capture.CaptureRun]: a virtual thread per task, semaphore bulkhead,
+///    `Future.state()`, and the scoped-value inheritance trap
+/// 5. [com.ajays.modernjava.payments.issuer.SimulatedIssuer]: `synchronized` no longer pins (JEP 491)
+/// 6. `scripts/LoomTour.java`: 10 000 captures on a platform pool vs virtual threads
+/// 7. `src/preview`: `ParallelRiskSignals` and `FxQuotes`, structured concurrency (preview in JDK 27)
 ///
 /// ## Design stance: data-oriented programming
 ///
